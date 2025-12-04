@@ -1,3 +1,71 @@
+resource "docker_network" "bgg_net" {
+  name = "bgg-net"
+}
+
+resource "docker_volume" "data_vol" {
+  name = "data-vol"
+}
+
+resource "docker_container" "bgg_database" {
+  name  = "bgg-database"
+  image = docker_image.database_image.image_id
+  mounts {
+    target = "/var/lib/mysql"
+    type   = "volume"
+    source = docker_volume.data_vol.name
+  }
+  ports {
+    internal = 3306
+  }
+  networks_advanced {
+    name = docker_network.bgg_net.name
+  }
+}
+
+resource "docker_container" "bgg_backend" {
+  count = 3
+  name  = "bgg-backend-${count.index + 1}"
+  image = docker_image.application_image.image_id
+  env = [
+    "BGG_DB_USER=root",
+    "BGG_DB_PASSWORD=${var.db_password}",
+    "BGG_DB_HOST=${docker_container.bgg_database.name}"
+  ]
+  networks_advanced {
+    name = docker_network.bgg_net.name
+  }
+  ports {
+    internal = 5000
+    external = 8080 + count.index
+  }
+}
+
+resource "local_file" "nginx_conf" {
+  filename        = "nginx.conf"
+  file_permission = "0444"
+  content = templatefile("${path.module}/nginx.conf.tftpl", {
+    bggapp_names = docker_container.bgg_backend[*].name
+    bggapp_ports = 5000
+  })
+}
+
+resource "docker_container" "bgg_nginx_reverse_proxy" {
+  name  = "bgg-nginx-reverse-proxy"
+  image = docker_image.nginx_image.image_id
+  ports {
+    internal = 80
+    external = 8443
+  }
+  mounts {
+    target = "/etc/nginx/nginx.conf"
+    type   = "bind"
+    source = abspath(local_file.nginx_conf.filename)
+  }
+  networks_advanced {
+    name = docker_network.bgg_net.name
+  }
+}
+
 data "digitalocean_ssh_key" "my_key" {
   name = "ssh_key"
 }

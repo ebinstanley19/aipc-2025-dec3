@@ -21,3 +21,8 @@ variable "SSH_PRIVATE_KEY_PATH" {
   description = "Path to your local private SSH key"
   type        = string
 }
+
+variable "db_password" {
+  type      = string
+  sensitive = true
+}
