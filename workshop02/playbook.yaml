@@ -1,0 +1,70 @@
+---
+- name: Install and configure code-server
+  hosts: all
+
+  tasks:
+    - name: Create code-server directory
+      file:
+        path: /usr/local/share/code-server
+        state: directory
+        mode: '0755'
+
+    - name: Download code-server
+      get_url:
+        url: "https://github.com/coder/code-server/releases/download/v4.106.3/code-server-4.106.3-linux-amd64.tar.gz"
+        dest: "/usr/local/share/code-server/code-server-4.106.3-linux-amd64.tar.gz"
+        mode: '0644'
+
+    - name: Extract code-server archive
+      unarchive:
+        src: "/usr/local/share/code-server/code-server-4.106.3-linux-amd64.tar.gz"
+        dest: /usr/local/share/code-server
+        remote_src: yes
+        creates: "/usr/local/share/code-server/code-server-4.106.3-linux-amd64"
+
+    - name: Copy code-server to /usr/lib
+      copy:
+        src: "/usr/local/share/code-server/code-server-4.106.3-linux-amd64/"
+        dest: /usr/lib/code-server
+        remote_src: yes
+        mode: '0755'
+
+    - name: Create symbolic link for code-server
+      file:
+        src: /usr/lib/code-server/bin/code-server
+        dest: /usr/bin/code-server
+        state: link
+
+    - name: Create code-server data directory
+      file:
+        path: /var/lib/code-server
+        state: directory
+        mode: '0755'
+
+    - name: Create code-server systemd service file
+      template:
+        src: ./code-server.service.j2
+        dest: /lib/systemd/system/code-server.service
+        mode: '0644'
+      notify: Reload systemd
+
+    - name: Enable and start code-server service
+      systemd:
+        name: code-server
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
+    - name: Check code-server service status
+      systemd:
+        name: code-server
+      register: code_server_status
+
+    - name: Display code-server status
+      debug:
+        msg: "code-server is {{ code_server_status.status.ActiveState }}"
+
+  handlers:
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes

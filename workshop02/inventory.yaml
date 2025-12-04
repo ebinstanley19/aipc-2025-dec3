@@ -1,0 +1,11 @@
+all:
+    vars:
+        ansible_user: root
+        ansible_ssh_private_key_file: /Users/ebinstanley/.ssh/id_ed25519
+        ansible_connection: ssh
+        ansible_python_interpreter: /usr/bin/python3
+        code_server_password: Qwerty123!
+    
+    hosts:
+        code_server:
+            ansible_host: 157.245.57.150

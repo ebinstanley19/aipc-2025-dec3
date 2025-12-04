@@ -1,0 +1,43 @@
+---
+- name: Install and configure nginx
+  hosts: all
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Copy code-server nginx site
+      copy:
+        src: ./code-server.conf
+        dest: /etc/nginx/sites-available/code-server.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart nginx
+
+    - name: Enable code-server site
+      file:
+        src: /etc/nginx/sites-available/code-server.conf
+        dest: /etc/nginx/sites-enabled/code-server.conf
+        state: link
+      notify: Restart nginx
+
+    - name: Ensure nginx is enabled and started
+      systemd:
+        name: nginx
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Restart nginx
+      systemd:
+        name: nginx
+        state: restarted
+        daemon_reload: true
