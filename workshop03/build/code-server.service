@@ -1,0 +1,13 @@
+[Unit]
+Description=code-server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Environment=PASSWORD=__PLACEHOLDER__
+ExecStart=/usr/bin/code-server --bind-addr 0.0.0.0:8080 /var/lib/code-server
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

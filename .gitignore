@@ -61,3 +61,5 @@ coverage.txt
 # Ignore keys
 prive_keys/*
 prive_keys
+*.auto.pkrvars.hcl
+.auto.pkrvars.hcl

@@ -1,0 +1,76 @@
+---
+- name: Install and configure code-server (golden image)
+  hosts: all
+  become: true
+
+  vars:
+    code_server_version: "{{ code_server_version | default('4.106.3') }}"
+    code_server_arch: "{{ code_server_arch | default('linux-amd64') }}"
+    code_server_tarball: "code-server-{{ code_server_version }}-{{ code_server_arch }}.tar.gz"
+
+  tasks:
+    - name: Create code-server directory
+      file:
+        path: /usr/local/share/code-server
+        state: directory
+        mode: '0755'
+
+    - name: Download code-server
+      get_url:
+        url: "https://github.com/coder/code-server/releases/download/v{{ code_server_version }}/{{ code_server_tarball }}"
+        dest: "/usr/local/share/code-server/{{ code_server_tarball }}"
+        mode: '0644'
+
+    - name: Extract code-server archive
+      unarchive:
+        src: "/usr/local/share/code-server/{{ code_server_tarball }}"
+        dest: /usr/local/share/code-server
+        remote_src: yes
+        creates: "/usr/local/share/code-server/code-server-{{ code_server_version }}-{{ code_server_arch }}"
+
+    - name: Copy code-server to /usr/lib
+      copy:
+        src: "/usr/local/share/code-server/code-server-{{ code_server_version }}-{{ code_server_arch }}/"
+        dest: /usr/lib/code-server
+        remote_src: yes
+        mode: '0755'
+
+    - name: Create symbolic link for code-server
+      file:
+        src: /usr/lib/code-server/bin/code-server
+        dest: /usr/bin/code-server
+        state: link
+
+    - name: Create code-server data directory
+      file:
+        path: /var/lib/code-server
+        state: directory
+        mode: '0755'
+
+    - name: Create code-server systemd service file
+      template:
+        src: code-server.service
+        dest: /lib/systemd/system/code-server.service
+        mode: '0644'
+      notify: Reload systemd
+
+    - name: Enable and start code-server service
+      systemd:
+        name: code-server
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
+    - name: Check code-server service status
+      systemd:
+        name: code-server
+      register: code_server_status
+
+    - name: Display code-server status
+      debug:
+        msg: "code-server is {{ code_server_status.status.ActiveState }}"
+
+  handlers:
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
