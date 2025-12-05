@@ -67,7 +67,7 @@ resource "docker_container" "bgg_nginx_reverse_proxy" {
 }
 
 data "digitalocean_ssh_key" "my_key" {
-  name = "ssh_key"
+  name = "Dev SSH Key"
 }
 
 resource "digitalocean_droplet" "ebindroplet" {
